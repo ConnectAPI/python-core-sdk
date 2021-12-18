@@ -9,28 +9,42 @@ AUTH_HEADER = "x-access-token"
 
 
 class Client(metaclass=SingletonMeta):
-    def __init__(self, url: str, token: str, refresh_token: str, **kwargs):
-        self.__url = url
-        self.__token = token
-        self.__refresh_token = refresh_token
-        self.__session = Session()
+    __token: str = None
+    __refresh_token: str = None
+    __url: str = None
+    __session = Session()
+
+    @classmethod
+    def set_token(cls, token: str, refresh_token: str):
+        cls.__token = token
+        cls.__refresh_token = refresh_token
+
+    @classmethod
+    def set_url(cls, url: str):
+        cls.__url = url
 
     def _refresh_token(self):
-        url = urljoin(self.__url, 'internal/auth/refresh')
+        url = urljoin(self.__url, 'internal/auth/token/refresh')
         response = self.__session.post(url, params={"refresh_token": self.__refresh_token})
         if response.status_code == 401:
             raise BadTokenException(response.json()["detail"])
-        self.__token = response.text
+        self.__token = response.text[1:-1]
 
-    def request(self, method: str, service_path_prefix: str, path, **kwargs) -> Response:
-        headers = kwargs.get("headers", {})
+    def request(self, method: str, service_path_prefix: str, path, query, body, headers, **kwargs) -> Response:
+        if self.__class__.__url is None:
+            raise RuntimeError(
+                "Can't use uninitialized client set url and token first "
+                "(Client.set_url('...'), Client.set_token('...'))"
+            )
+
+        url = urljoin(self.__url, service_path_prefix)
+        url = url + path
         headers.update({AUTH_HEADER: self.__token})
-        kwargs["headers"] = headers
-        response = self.__session.request(method, service_path_prefix, path, **kwargs)
+        response = self.__session.request(method, url, params=query, json=body, headers=headers, **kwargs)
         if response.headers.get("x-auth-exception", None) == "Expired":
             self._refresh_token()
-            kwargs["headers"][AUTH_HEADER] = self.__token
-            response = self.__session.request(method, service_path_prefix, path, **kwargs)
+            headers.update({AUTH_HEADER: self.__token})
+            response = self.__session.request(method, url, params=query, json=body, headers=headers, **kwargs)
         elif response.headers.get("x-auth-exception", None) == "Invalid":
             raise BadTokenException("invalid token")
         elif response.headers.get("x-auth-exception", None) == "Not Authorized":
