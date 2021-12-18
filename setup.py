@@ -23,7 +23,7 @@ setuptools.setup(
         'Intended Audience :: Developers',
         'Environment :: Web Environment',
         'Topic :: Software Development',
-        'License :: OSI Approved :: MIT',
+        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
