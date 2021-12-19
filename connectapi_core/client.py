@@ -15,20 +15,20 @@ class Client(metaclass=SingletonMeta):
     __session = Session()
 
     @classmethod
-    def set_token(cls, token: str, refresh_token: str):
-        cls.__token = token
-        cls.__refresh_token = refresh_token
+    def set_token(cls, token: str):
+        cls.__refresh_token = token
 
     @classmethod
     def set_url(cls, url: str):
         cls.__url = url
 
-    def _refresh_token(self):
-        url = urljoin(self.__url, 'internal/auth/token/refresh')
-        response = self.__session.post(url, params={"refresh_token": self.__refresh_token})
+    @classmethod
+    def _refresh_token(cls):
+        url = urljoin(cls.__url, 'internal/auth/token/refresh')
+        response = cls.__session.post(url, params={"refresh_token": cls.__refresh_token})
         if response.status_code == 401:
             raise BadTokenException(response.json()["detail"])
-        self.__token = response.text[1:-1]
+        cls.__token = response.text[1:-1]
 
     def request(self, method: str, service_path_prefix: str, path, query, body, headers, **kwargs) -> Response:
         if self.__class__.__url is None:
@@ -36,13 +36,15 @@ class Client(metaclass=SingletonMeta):
                 "Can't use uninitialized client set url and token first "
                 "(Client.set_url('...'), Client.set_token('...'))"
             )
+        if self.__class__.__token is None:
+            self.__class__._refresh_token()
 
         url = urljoin(self.__url, service_path_prefix)
         url = url + path
         headers.update({AUTH_HEADER: self.__token})
         response = self.__session.request(method, url, params=query, json=body, headers=headers, **kwargs)
         if response.headers.get("x-auth-exception", None) == "Expired":
-            self._refresh_token()
+            self.__class__._refresh_token()
             headers.update({AUTH_HEADER: self.__token})
             response = self.__session.request(method, url, params=query, json=body, headers=headers, **kwargs)
         elif response.headers.get("x-auth-exception", None) == "Invalid":
