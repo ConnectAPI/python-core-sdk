@@ -1,4 +1,4 @@
-# python-core-client
+# python-core-client (Python + ConnectAPI ❤)
 Client lib for communicating with the API backend
 
 
