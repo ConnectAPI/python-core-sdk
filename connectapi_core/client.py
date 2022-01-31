@@ -45,11 +45,11 @@ class Client(metaclass=SingletonMeta):
         headers.update({"Content-Type": kwargs.pop("content_type", "application/json")})
         headers.update({AUTH_HEADER: self.__token})
         
-        response = self.__session.request(method, url, params=query, body=body, headers=headers, cookies=cookies, **kwargs)
+        response = self.__session.request(method, url, params=query, data=body, headers=headers, cookies=cookies, **kwargs)
         if response.headers.get("x-auth-exception", None) == "Expired":
             self.__class__._refresh_token()
             headers.update({AUTH_HEADER: self.__token})
-            response = self.__session.request(method, url, params=query, body=body, headers=headers, cookies=cookies, **kwargs)
+            response = self.__session.request(method, url, params=query, data=body, headers=headers, cookies=cookies, **kwargs)
         elif response.headers.get("x-auth-exception", None) == "Invalid":
             raise BadTokenException("invalid token")
         elif response.headers.get("x-auth-exception", None) == "Not Authorized":
