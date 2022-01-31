@@ -30,7 +30,7 @@ class Client(metaclass=SingletonMeta):
             raise BadTokenException(response.json()["detail"])
         cls.__token = response.text[1:-1]
 
-    def request(self, method: str, service_path_prefix: str, path, query, body, headers, **kwargs) -> Response:
+    def request(self, method: str, service_path_prefix: str, path, query, body, headers, cookies, **kwargs) -> Response:
         if self.__class__.__url is None:
             raise RuntimeError(
                 "Can't use uninitialized client set url and token first "
@@ -42,11 +42,11 @@ class Client(metaclass=SingletonMeta):
         url = urljoin(self.__url, service_path_prefix)
         url = url + path
         headers.update({AUTH_HEADER: self.__token})
-        response = self.__session.request(method, url, params=query, json=body, headers=headers, **kwargs)
+        response = self.__session.request(method, url, params=query, json=body, headers=headers, cookies=cookies, **kwargs)
         if response.headers.get("x-auth-exception", None) == "Expired":
             self.__class__._refresh_token()
             headers.update({AUTH_HEADER: self.__token})
-            response = self.__session.request(method, url, params=query, json=body, headers=headers, **kwargs)
+            response = self.__session.request(method, url, params=query, json=body, headers=headers, cookies=cookies, **kwargs)
         elif response.headers.get("x-auth-exception", None) == "Invalid":
             raise BadTokenException("invalid token")
         elif response.headers.get("x-auth-exception", None) == "Not Authorized":
