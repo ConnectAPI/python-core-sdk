@@ -41,7 +41,10 @@ class Client(metaclass=SingletonMeta):
 
         url = urljoin(self.__url, service_path_prefix)
         url = url + path
+
+        headers.update({"Content-Type": kwargs.pop("content_type", "application/json")})
         headers.update({AUTH_HEADER: self.__token})
+        
         response = self.__session.request(method, url, params=query, json=body, headers=headers, cookies=cookies, **kwargs)
         if response.headers.get("x-auth-exception", None) == "Expired":
             self.__class__._refresh_token()

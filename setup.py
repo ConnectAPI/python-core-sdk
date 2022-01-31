@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 setuptools.setup(
     name='connectapi-core',
     packages=setuptools.find_packages(),
-    version='1.1.1',
+    version='1.1.2',
     license='MIT',
     description="""Core SDK for the ConnectAPI ecosystem""",
     long_description=long_description,
